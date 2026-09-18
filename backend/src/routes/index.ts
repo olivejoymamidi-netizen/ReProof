@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import authRoutes from './auth';
 
 const router = Router();
 
@@ -9,5 +10,8 @@ router.get('/health', (req: Request, res: Response) => {
     message: 'ReProof backend is running',
   });
 });
+
+// Authentication routes (/api/auth)
+router.use('/auth', authRoutes);
 
 export default router;
