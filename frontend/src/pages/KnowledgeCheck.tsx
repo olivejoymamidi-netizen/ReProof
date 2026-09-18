@@ -256,6 +256,8 @@ export const KnowledgeCheck: React.FC = () => {
       const evaluationResult = await submitKnowledgeCheck(attemptId);
       // Clean up local draft answers
       localStorage.removeItem(localAnswersKey);
+      localStorage.setItem(`reproof_knowledge_attempt_${skillId}_${levelId}`, attemptId);
+      localStorage.setItem(`reproof_knowledge_result_${skillId}_${levelId}`, JSON.stringify(evaluationResult));
 
       navigate(
         `/knowledge-result?attemptId=${attemptId}&domainId=${domainId}&skillId=${skillId}&levelId=${levelId}`,

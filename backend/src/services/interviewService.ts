@@ -373,29 +373,69 @@ export async function submitInterview(params: {
   const now = new Date().toISOString();
   attempt.submittedAt = now;
 
-  // Evaluate candidate responses
+  // Evaluate candidate responses objectively based on technical substance and reasoning
   const transcriptReview: InterviewEvaluationResult['transcriptReview'] = [];
   let totalScoreSum = 0;
 
+  // Technical terminology dictionary for semantic verification
+  const technicalTerms = [
+    'invariant', 'complexity', 'trade-off', 'latency', 'throughput', 'bottleneck',
+    'memory', 'cache', 'buffer', 'vector', 'matrix', 'tensor', 'broadcast',
+    'concurrency', 'race condition', 'deadlock', 'mutex', 'lock', 'thread',
+    'asynchronous', 'promise', 'callback', 'stream', 'partition', 'index',
+    'hash', 'tree', 'graph', 'recursion', 'dynamic programming', 'stack', 'queue',
+    'sanitize', 'validate', 'overflow', 'boundary', 'null', 'exception', 'retry',
+    'encryption', 'decryption', 'key', 'token', 'tls', 'handshake', 'signature',
+    'profile', 'benchmark', 'optimize', 'scalab', 'redundancy', 'failover'
+  ];
+
   for (const q of attempt.questions) {
     const text = (attempt.answers[q.id] || '').trim();
-    const wordCount = text.length > 0 ? text.split(/\s+/).length : 0;
+    const words = text.length > 0 ? text.split(/\s+/) : [];
+    const wordCount = words.length;
+    const lower = text.toLowerCase();
 
-    let qScore = 60; // Baseline
-    let feedback = 'Brief response; core intuition present.';
+    let qScore = 0;
+    let feedback = '';
 
-    if (wordCount >= 70) {
-      qScore = 92;
-      feedback = 'Articulate technical reasoning with thorough trade-off analysis and clear mechanical detail.';
-    } else if (wordCount >= 35) {
-      qScore = 82;
-      feedback = 'Solid explanation addressing core constraints with correct architectural terminology.';
-    } else if (wordCount >= 15) {
-      qScore = 72;
-      feedback = 'Adequate conceptual understanding, but would benefit from concrete edge-case illustrations.';
+    if (wordCount < 4) {
+      qScore = 15;
+      feedback = 'No substantive answer provided. Fails to address the technical prompt.';
+    } else if (lower === 'i do not know' || lower === 'idk' || lower === 'asdf' || lower === 'test' || lower.includes('placeholder')) {
+      qScore = 20;
+      feedback = 'Generic or dismissive response lacking architectural reasoning or domain terminology.';
     } else {
-      qScore = 45;
-      feedback = 'Response is minimal; lacks concrete technical specifics or system rationale.';
+      // Base score for an attempted coherent response
+      let base = 30;
+
+      // Substance contribution based on meaningful length
+      if (wordCount >= 60) base += 25;
+      else if (wordCount >= 30) base += 18;
+      else if (wordCount >= 12) base += 10;
+
+      // Technical terminology & depth contribution
+      const matchedTerms = technicalTerms.filter((term) => lower.includes(term));
+      const termScore = Math.min(35, matchedTerms.length * 8);
+
+      // Question focus area bonus (checks if answer addresses focus area)
+      let focusBonus = 0;
+      if (q.focusArea === 'Optimization' && (lower.includes('o(') || lower.includes('scale') || lower.includes('memory') || lower.includes('time'))) {
+        focusBonus += 10;
+      } else if (q.focusArea === 'Debugging' && (lower.includes('log') || lower.includes('assert') || lower.includes('trace') || lower.includes('isolate') || lower.includes('reproduc'))) {
+        focusBonus += 10;
+      } else if (q.focusArea === 'Technical Decisions' && (lower.includes('because') || lower.includes('constraint') || lower.includes('instead') || lower.includes('priorit'))) {
+        focusBonus += 10;
+      }
+
+      qScore = Math.min(100, Math.max(25, base + termScore + focusBonus));
+
+      if (qScore >= 80) {
+        feedback = 'Articulate technical reasoning with concrete trade-off analysis and mechanical domain precision.';
+      } else if (qScore >= 60) {
+        feedback = 'Solid explanation addressing core constraints with correct architectural terminology.';
+      } else {
+        feedback = 'Response is superficial; lacks concrete technical specifics, failure invariants, or system rationale.';
+      }
     }
 
     totalScoreSum += qScore;

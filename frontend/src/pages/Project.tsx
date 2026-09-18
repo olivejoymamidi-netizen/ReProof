@@ -54,6 +54,17 @@ export const Project: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [integritySignalsCount, setIntegritySignalsCount] = useState(0);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Check if learner has submitted any actual solution
+  const isSolutionEmpty = useCallback(() => {
+    const rawCode = (sourceCode || '').trim();
+    const starter = (spec?.starterCode || '').trim();
+    const isStarterUnchanged = rawCode === starter;
+    const hasNotes = (architectureNotes || '').trim().length > 0;
+    const hasLogs = (executionLogs || '').trim().length > 0;
+    return rawCode.length === 0 || (isStarterUnchanged && !hasNotes && !hasLogs);
+  }, [sourceCode, spec?.starterCode, architectureNotes, executionLogs]);
 
   // Auto-save debouncing
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -171,11 +182,28 @@ export const Project: React.FC = () => {
     }
   };
 
+  const handleOpenSubmitModal = () => {
+    if (isSolutionEmpty()) {
+      setValidationError('Please submit a solution before running the evaluation.');
+      return;
+    }
+    setValidationError(null);
+    setShowConfirmModal(true);
+  };
+
   // Submit project
   const handleFinalSubmit = async () => {
     if (!attempt?.attemptId) return;
+
+    if (isSolutionEmpty()) {
+      setValidationError('Please submit a solution before running the evaluation.');
+      setShowConfirmModal(false);
+      return;
+    }
+
     setIsSubmitting(true);
     setShowConfirmModal(false);
+    setValidationError(null);
 
     try {
       const result = await submitProject(attempt.attemptId, {
@@ -184,6 +212,9 @@ export const Project: React.FC = () => {
         architectureNotes,
         executionLogs,
       });
+
+      localStorage.setItem(`reproof_project_attempt_${skillId}_${levelId}`, attempt.attemptId);
+      localStorage.setItem(`reproof_project_result_${skillId}_${levelId}`, JSON.stringify(result));
 
       navigate(
         `/project-result?attemptId=${encodeURIComponent(attempt.attemptId)}&domainId=${encodeURIComponent(domainId)}&skillId=${encodeURIComponent(skillId)}&levelId=${encodeURIComponent(levelId)}`,
@@ -296,14 +327,50 @@ export const Project: React.FC = () => {
             <div className="shrink-0">
               <button
                 type="button"
-                onClick={() => setShowConfirmModal(true)}
-                disabled={isSubmitting || !sourceCode.trim()}
+                onClick={handleOpenSubmitModal}
+                disabled={isSubmitting}
                 className="w-full sm:w-auto px-8 py-4 bg-cobalt-700 hover:bg-cobalt-900 text-white font-mono text-xs uppercase tracking-widest transition-colors cursor-pointer rounded-[2px] font-bold shadow-sm flex items-center justify-center gap-3 disabled:opacity-50"
               >
                 <span>Submit Project for Rubric Evaluation</span>
                 <span>&rarr;</span>
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Submission & Evaluation Status Strip */}
+      <section className="w-full max-w-[1600px] mx-auto px-6 sm:px-12 pt-6">
+        {validationError && (
+          <div className="mb-4 p-3 bg-rose-50 border border-rose-300 text-rose-800 text-xs font-mono rounded-[2px] flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-rose-600">!</span>
+              <span>{validationError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setValidationError(null)}
+              className="text-rose-500 hover:text-rose-800 text-sm font-bold px-1 cursor-pointer"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
+        <div className="bg-white border border-ivory-300 p-4 rounded-[2px] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 bg-ivory-200 border border-ivory-300 text-graphite-700 font-bold rounded-[2px]">
+              STATUS: No submission yet
+            </span>
+            <span className="font-mono text-xs text-graphite-600">
+              Submit your solution to run the evaluation.
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs font-mono text-graphite-500">
+            <span>EVALUATION: <strong className="text-graphite-700">-- / 100</strong></span>
+            <span className="text-ivory-300">|</span>
+            <span>TEST RUNNER: <strong className="text-graphite-700">Awaiting submission</strong></span>
           </div>
         </div>
       </section>
@@ -460,7 +527,9 @@ export const Project: React.FC = () => {
               {activeTab === 'editor' && (
                 <div className="space-y-3 flex-1 flex flex-col">
                   <div className="flex items-center justify-between text-xs font-mono text-graphite-500">
-                    <span>Source Code Buffer • UTF-8</span>
+                    <span className="text-cobalt-700 font-bold font-mono">
+                      {spec.starterFileName || 'solution.py'} • Source Buffer
+                    </span>
                     <span>Characters: {sourceCode.length}</span>
                   </div>
                   <textarea
@@ -502,7 +571,7 @@ export const Project: React.FC = () => {
                       setExecutionLogs(e.target.value);
                       triggerAutoSave(sourceCode, repoUrl, architectureNotes, e.target.value);
                     }}
-                    placeholder="E.g., $ pytest tests/ --verbose&#10;test_boundary_normalization PASSED [100%]&#10;test_high_volume_throughput PASSED (0.04s)"
+                    placeholder="No submission yet. Submit your solution to run the evaluation, or paste your local test outputs, terminal benchmarks, or assertion logs here."
                     className="flex-1 w-full p-4 font-mono text-xs bg-graphite-900 text-emerald-400 rounded-[2px] leading-relaxed focus:outline-none min-h-[480px] resize-y"
                     spellCheck={false}
                   />
@@ -547,8 +616,8 @@ export const Project: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => setShowConfirmModal(true)}
-                  disabled={isSubmitting || !sourceCode.trim()}
+                  onClick={handleOpenSubmitModal}
+                  disabled={isSubmitting}
                   className="px-6 py-2.5 bg-cobalt-700 hover:bg-cobalt-900 text-white font-mono text-xs uppercase tracking-wider font-bold transition-colors rounded-[2px] cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? 'Evaluating Submission...' : 'Submit Project →'}

@@ -58,6 +58,12 @@ export interface ProjectEvaluationResult {
   submittedAt: string;
   evaluatedAt: string;
   attemptNumber: number;
+  testSummary?: {
+    total: number;
+    passed: number;
+    status: 'PASS' | 'FAIL' | 'NEEDS_WORK';
+    description: string;
+  };
 }
 
 export interface ProjectAttemptResponse {

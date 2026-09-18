@@ -162,6 +162,9 @@ export const TechnicalInterview: React.FC = () => {
 
     try {
       const evaluationResult = await submitInterview(attempt.attemptId, answers);
+      localStorage.setItem(`reproof_interview_attempt_${skillId}_${levelId}`, attempt.attemptId);
+      localStorage.setItem(`reproof_interview_result_${skillId}_${levelId}`, JSON.stringify(evaluationResult));
+
       navigate(
         `/interview-result?attemptId=${encodeURIComponent(attempt.attemptId)}&domainId=${encodeURIComponent(domainId)}&skillId=${encodeURIComponent(skillId)}&levelId=${encodeURIComponent(levelId)}`,
         { state: { result: evaluationResult } }

@@ -2,7 +2,8 @@
  * ReProof Gemini Evidence-Analysis Assistant
  * Strictly constrained to predefined rubrics and empirical candidate evidence.
  * Reads GEMINI_API_KEY from environment variables only (never exposed or hardcoded).
- * Incorporates timeout handling and graceful fallback.
+ * Incorporates timeout handling and transparent error reporting.
+ * When Gemini is unavailable, explicitly indicates "AI evaluation unavailable" without generating fake AI analysis.
  */
 
 export interface GeminiAnalysisInput {
@@ -17,13 +18,14 @@ export interface GeminiAnalysisInput {
     levelExpectation: string;
   }>;
   evidence: {
-    knowledgeScore: number;
+    knowledgeScore?: number | null;
     approachComplexity?: string;
-    codingTestsPassedPct?: number;
+    approachScore?: number | null;
+    codingTestsPassedPct?: number | null;
     codingLinesChanged?: number;
     projectTitle?: string;
-    projectScore?: number;
-    interviewScore?: number;
+    projectScore?: number | null;
+    interviewScore?: number | null;
     crossRoundConsistency?: string;
   };
 }
@@ -52,17 +54,18 @@ const GEMINI_MODEL = 'gemini-1.5-flash';
 const API_TIMEOUT_MS = 10000; // 10s strict timeout
 
 /**
- * Generate structured evidence analysis using Gemini 1.5 Flash.
- * Falls back deterministically if API key is not configured or if API call fails/times out.
+ * Generate structured evidence analysis using Gemini.
+ * Returns honest "AI evaluation unavailable" status if API key is missing or call fails/times out.
+ * Never generates fake AI claims.
  */
 export async function analyzeEvidenceWithGemini(
   input: GeminiAnalysisInput
 ): Promise<GeminiStructuredAnalysis> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
 
-  // If no API key is set, use deterministic fallback
+  // If no API key is configured, report AI unavailable immediately
   if (!apiKey) {
-    return generateDeterministicFallback(input, false, 'GEMINI_API_KEY not configured in backend environment.');
+    return createUnavailableAIResponse('AI evaluation unavailable: GEMINI_API_KEY is not configured in backend environment.');
   }
 
   const prompt = buildGeminiPrompt(input);
@@ -85,7 +88,7 @@ export async function analyzeEvidenceWithGemini(
           },
         ],
         generationConfig: {
-          temperature: 0.2, // Low temperature for factual, evidence-anchored analysis
+          temperature: 0.1, // Highly deterministic, strictly evidence-anchored
           responseMimeType: 'application/json',
         },
       }),
@@ -95,55 +98,67 @@ export async function analyzeEvidenceWithGemini(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.warn(`[GeminiService] API responded with HTTP ${response.status}. Falling back to deterministic analysis.`);
-      return generateDeterministicFallback(input, false, `Gemini API error HTTP ${response.status}`);
+      const errorText = await response.text().catch(() => '');
+      console.warn(`[GeminiService] API returned HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+      return createUnavailableAIResponse(`AI evaluation unavailable: Gemini API responded with HTTP ${response.status}. Official score calculated by deterministic backend rules.`);
     }
 
     const data: any = await response.json();
     const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!candidateText) {
-      return generateDeterministicFallback(input, false, 'Gemini returned empty candidate content.');
+      return createUnavailableAIResponse('AI evaluation unavailable: Gemini response contained empty content.');
     }
 
-    const parsed = JSON.parse(candidateText);
+    try {
+      const parsed = JSON.parse(candidateText);
 
-    return {
-      engine: 'ReProof Intelligence + Gemini Evidence Assistant (Connected)',
-      model: GEMINI_MODEL,
-      connected: true,
-      evidenceAnchored: true,
-      analyticalRemarks: Array.isArray(parsed.analyticalRemarks) ? parsed.analyticalRemarks : [
-        `Candidate demonstrated proficiency aligned with Level 0${input.levelNumber} expectations for ${input.skillName}.`,
-        `Project and interview evidence show consistent correlation.`,
-      ],
-      validatedStrengths: Array.isArray(parsed.validatedStrengths) ? parsed.validatedStrengths : [],
-      technicalWeaknesses: Array.isArray(parsed.technicalWeaknesses) ? parsed.technicalWeaknesses : [],
-      missingEvidence: Array.isArray(parsed.missingEvidence) ? parsed.missingEvidence : [],
-      consistencyObservations: parsed.consistencyObservations || 'Evidence shows alignment between practical code and interview defense.',
-    };
+      return {
+        engine: 'Gemini Evidence Assistant (Connected)',
+        model: GEMINI_MODEL,
+        connected: true,
+        evidenceAnchored: true,
+        analyticalRemarks: Array.isArray(parsed.analyticalRemarks) && parsed.analyticalRemarks.length > 0
+          ? parsed.analyticalRemarks
+          : [`Candidate evidence analyzed against Level 0${input.levelNumber} benchmarks for ${input.skillName}.`],
+        validatedStrengths: Array.isArray(parsed.validatedStrengths) ? parsed.validatedStrengths : [],
+        technicalWeaknesses: Array.isArray(parsed.technicalWeaknesses) ? parsed.technicalWeaknesses : [],
+        missingEvidence: Array.isArray(parsed.missingEvidence) ? parsed.missingEvidence : [],
+        consistencyObservations: parsed.consistencyObservations || 'Evidence cross-referenced across completed rounds.',
+      };
+    } catch (parseError) {
+      return createUnavailableAIResponse('AI evaluation unavailable: Failed to parse structured JSON from Gemini response.');
+    }
   } catch (error: any) {
     clearTimeout(timeoutId);
-    const reason = error.name === 'AbortError' ? 'Gemini API timed out after 10s' : error.message;
-    console.warn(`[GeminiService] Analysis failed (${reason}). Employing resilient deterministic fallback.`);
-    return generateDeterministicFallback(input, false, reason);
+    const reason = error.name === 'AbortError' ? 'timeout after 10 seconds' : error.message;
+    console.warn(`[GeminiService] API call failed (${reason}).`);
+    return createUnavailableAIResponse(`AI evaluation unavailable: Network call failed (${reason}). Official score determined deterministically.`);
   }
 }
 
 /**
  * Format prompt strictly instructing Gemini to act as an evidence-analysis assistant.
- * Forbids inventing scoring criteria or ungrounded claims.
+ * Excludes any artificial default scores or fake placeholders.
  */
 function buildGeminiPrompt(input: GeminiAnalysisInput): string {
-  return `You are ReProof's Evidence Analysis Assistant.
-Analyze the following multi-round candidate assessment evidence against predefined competency rubrics.
+  const kScore = input.evidence.knowledgeScore != null ? `${input.evidence.knowledgeScore}/100` : 'NOT_AVAILABLE (Not submitted)';
+  const appScore = input.evidence.approachScore != null ? `${input.evidence.approachScore}/100` : 'NOT_AVAILABLE';
+  const appComp = input.evidence.approachComplexity || 'Not declared';
+  const cScore = input.evidence.codingTestsPassedPct != null ? `${input.evidence.codingTestsPassedPct}% tests passed` : 'NOT_AVAILABLE (Not submitted)';
+  const pScore = input.evidence.projectScore != null ? `${input.evidence.projectScore}/100` : 'NOT_AVAILABLE (Not submitted)';
+  const iScore = input.evidence.interviewScore != null ? `${input.evidence.interviewScore}/100` : 'NOT_AVAILABLE (Not submitted)';
 
-CRITICAL CONSTRAINTS:
-1. Do NOT invent new competencies outside the rubric.
-2. Do NOT score or grade the candidate (the backend deterministically calculates all scores).
-3. Distinguish empirical evidence from interpretation.
-4. Ground all conclusions in the submitted evidence.
-5. Return strictly valid JSON adhering to the specified schema.
+  return `You are ReProof's Evidence Analysis Assistant.
+Analyze ONLY the actual empirical assessment evidence below against the predefined competency rubrics.
+
+CRITICAL RULES:
+1. Do NOT invent or assume evidence for rounds marked NOT_AVAILABLE.
+2. Do NOT score or grade the candidate (the backend deterministically calculates all numerical scores).
+3. Do NOT make generic claims without citing actual submitted work.
+4. Distinguish empirical evidence from interpretation.
+5. If evidence is weak or missing, note it explicitly under technicalWeaknesses and missingEvidence.
+6. Return strictly valid JSON adhering to the specified schema.
 
 ASSESSMENT CONTEXT:
 Domain: ${input.domainName} (${input.domainId})
@@ -153,12 +168,12 @@ Assessed Level: Level 0${input.levelNumber}
 PREDEFINED COMPETENCY RUBRIC:
 ${input.rubricCriteria.map((c, idx) => `[${idx + 1}] ${c.name}: ${c.description} (Level 0${input.levelNumber} Expectation: ${c.levelExpectation})`).join('\n')}
 
-LEARNER EVIDENCE:
-- Knowledge Check Diagnostic Score: ${input.evidence.knowledgeScore}/100
-- Approach Strategy & Complexity: ${input.evidence.approachComplexity || 'Time: O(N log N), Space: O(N)'}
-- Coding / Practical Tests Passed: ${input.evidence.codingTestsPassedPct ?? 85}% (Code changes: ${input.evidence.codingLinesChanged ?? 45} lines)
-- Project Benchmark: "${input.evidence.projectTitle || input.skillName + ' Project'}" (Score: ${input.evidence.projectScore ?? 85}/100)
-- Technical Interview Defense Score: ${input.evidence.interviewScore ?? 80}/100 (Consistency: ${input.evidence.crossRoundConsistency || 'High Alignment'})
+LEARNER EMPIRICAL EVIDENCE:
+- Knowledge Check Diagnostic Score: ${kScore}
+- Approach Formulation: Score: ${appScore}, Declared Complexity: ${appComp}
+- Coding / Practical Tests: ${cScore} (Code delta: ${input.evidence.codingLinesChanged ?? 0} lines)
+- Project Benchmark: "${input.evidence.projectTitle || 'Practical Benchmark'}" (Score: ${pScore})
+- Technical Interview Defense: Score: ${iScore} (Consistency: ${input.evidence.crossRoundConsistency || 'Pending verification'})
 
 OUTPUT JSON SCHEMA:
 {
@@ -183,52 +198,19 @@ OUTPUT JSON SCHEMA:
 }
 
 /**
- * Resilient deterministic fallback ensuring zero downtime when Gemini API is offline or unconfigured.
+ * Transparent response indicating that AI evaluation is unavailable.
+ * Never fabricates mock strengths or fake AI output.
  */
-function generateDeterministicFallback(
-  input: GeminiAnalysisInput,
-  connected: boolean,
-  notice?: string
-): GeminiStructuredAnalysis {
-  const isHighPerformer = (input.evidence.codingTestsPassedPct ?? 80) >= 80 && (input.evidence.projectScore ?? 80) >= 80;
-
-  const remarks = [
-    `Candidate demonstrated consistent command of ${input.rubricCriteria[0]?.name || input.skillName} under Level 0${input.levelNumber} constraints.`,
-    `Cross-round comparison confirms that practical project implementation directly reflects verbal justifications during the Technical Interview.`,
-    isHighPerformer
-      ? `All primary empirical criteria satisfied with verifiable test pass rates and production architecture.`
-      : `Identified targeted technical gap(s) with high remediation leverage prior to Level 0${Math.min(3, input.levelNumber + 1)} progression.`,
-  ];
-
-  if (notice) {
-    remarks.push(`[System Note: ${notice}]`);
-  }
-
-  const validatedStrengths = input.rubricCriteria.slice(0, 2).map((c) => ({
-    competencyName: c.name,
-    evidenceCitation: `Level 0${input.levelNumber} Project Implementation & Coding Assertions`,
-    explanation: `Candidate reliably established ${c.levelExpectation} with reproducible test artifacts.`,
-  }));
-
-  const technicalWeaknesses = !isHighPerformer && input.rubricCriteria.length > 2
-    ? [
-        {
-          competencyName: input.rubricCriteria[input.rubricCriteria.length - 1].name,
-          observedGap: `Partial constraint adherence under boundary edge conditions.`,
-          suggestedFocus: `Targeted practice under constrained execution bounds.`,
-        },
-      ]
-    : [];
-
+function createUnavailableAIResponse(reason: string): GeminiStructuredAnalysis {
   return {
-    engine: 'ReProof Intelligence (Deterministic Analytical Engine)',
-    model: 'deterministic-rule-engine-v1',
-    connected,
+    engine: 'ReProof Objective Rule Engine',
+    model: 'offline',
+    connected: false,
     evidenceAnchored: true,
-    analyticalRemarks: remarks,
-    validatedStrengths,
-    technicalWeaknesses,
+    analyticalRemarks: [reason],
+    validatedStrengths: [],
+    technicalWeaknesses: [],
     missingEvidence: [],
-    consistencyObservations: 'Submissions across Coding and Project demonstrate coherent technical reasoning matching Interview defense.',
+    consistencyObservations: 'Cross-round scoring verified deterministically via backend rubric engine.',
   };
 }

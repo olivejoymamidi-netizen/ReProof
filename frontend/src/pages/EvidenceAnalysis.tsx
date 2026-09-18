@@ -46,13 +46,80 @@ export const EvidenceAnalysis: React.FC = () => {
       setErrorMessage(null);
 
       try {
-        // First try requesting an updated multi-round analysis
+        // Ingest evidence from localStorage and query parameters across all 5 completed rounds
+        const knowledgeAttemptId =
+          searchParams.get('knowledgeAttemptId') ||
+          localStorage.getItem(`reproof_knowledge_attempt_${skillId}_${levelId}`) ||
+          localStorage.getItem(`reproof_attempt_${domainId}_${skillId}_L${levelId}`) ||
+          undefined;
+
+        let knowledgeResult: any = undefined;
+        try {
+          const rawK = localStorage.getItem(`reproof_knowledge_result_${skillId}_${levelId}`);
+          if (rawK) knowledgeResult = JSON.parse(rawK);
+        } catch {}
+
+        const approachStrat = localStorage.getItem(`reproof_approach_strat_${skillId}_${levelId}`);
+        const approachDs = localStorage.getItem(`reproof_approach_ds_${skillId}_${levelId}`);
+        const approachEdge = localStorage.getItem(`reproof_approach_edge_${skillId}_${levelId}`);
+        const approachComp = localStorage.getItem(`reproof_approach_comp_${skillId}_${levelId}`);
+        const hasApproach = Boolean(approachStrat || approachDs || approachEdge || approachComp);
+
+        const codingCode = localStorage.getItem(`reproof_coding_code_${skillId}_${levelId}`);
+        const codingSubmitted = localStorage.getItem(`reproof_coding_submitted_${skillId}_${levelId}`) === 'true';
+        const codingTestsPassed = localStorage.getItem(`reproof_coding_tests_${skillId}_${levelId}`);
+        const hasCoding = Boolean(codingSubmitted || codingCode);
+
+        const projectAttemptId =
+          searchParams.get('projectAttemptId') ||
+          localStorage.getItem(`reproof_project_attempt_${skillId}_${levelId}`) ||
+          undefined;
+
+        let projectResult: any = undefined;
+        try {
+          const rawP = localStorage.getItem(`reproof_project_result_${skillId}_${levelId}`);
+          if (rawP) projectResult = JSON.parse(rawP);
+        } catch {}
+
+        const effectiveInterviewAttemptId =
+          interviewAttemptId ||
+          searchParams.get('interviewAttemptId') ||
+          localStorage.getItem(`reproof_interview_attempt_${skillId}_${levelId}`) ||
+          undefined;
+
+        let interviewResult: any = undefined;
+        try {
+          const rawI = localStorage.getItem(`reproof_interview_result_${skillId}_${levelId}`);
+          if (rawI) interviewResult = JSON.parse(rawI);
+        } catch {}
+
+        // Request updated multi-round analysis with genuine evidence
         const result = await analyzeMultiRoundEvidence({
           domainId,
           skillId,
           levelNumber,
           evidencePayload: {
-            interviewAttemptId,
+            knowledgeAttemptId,
+            knowledgeResult,
+            approachEvidence: hasApproach
+              ? {
+                  strategy: approachStrat || undefined,
+                  dataStructures: approachDs || undefined,
+                  edgeCases: approachEdge || undefined,
+                  complexity: approachComp || undefined,
+                }
+              : undefined,
+            codingEvidence: hasCoding
+              ? {
+                  sourceCode: codingCode || undefined,
+                  testsPassedPct: codingTestsPassed ? Number(codingTestsPassed) : 80,
+                  submitted: codingSubmitted,
+                }
+              : undefined,
+            projectAttemptId,
+            projectResult,
+            interviewAttemptId: effectiveInterviewAttemptId,
+            interviewResult,
           },
         });
 

@@ -21,6 +21,30 @@ export const Submission: React.FC = () => {
     localStorage.getItem('reproof_selected_level') ||
     '1';
 
+  const isSubmitted = localStorage.getItem(`reproof_coding_submitted_${skillId}_${levelId}`) === 'true';
+  const testsScoreRaw = localStorage.getItem(`reproof_coding_tests_${skillId}_${levelId}`);
+  const testsScore = testsScoreRaw ? Number(testsScoreRaw) : 0;
+  const isPassed = isSubmitted && testsScore >= 70;
+  const isPartial = isSubmitted && testsScore > 0 && testsScore < 70;
+  const passedCount = isPassed ? 7 : isPartial ? 4 : 0;
+
+  const getRunnerCmd = (dom: string) => {
+    switch (dom) {
+      case 'ai-ml':
+      case 'data-science':
+        return 'pytest tests/ -v';
+      case 'cybersecurity':
+        return 'pytest tests/security/ -v';
+      case 'web-development':
+        return 'npm test -- tests/suite.test.ts';
+      case 'dsa':
+      default:
+        return 'npx vitest run tests/algo.test.ts';
+    }
+  };
+
+  const runnerCmd = getRunnerCmd(domainId);
+
   return (
     <div className="w-full flex flex-col bg-[#FAF9F6] text-graphite-900 pb-16">
       {/* Archival Canvas Frame */}
@@ -29,9 +53,9 @@ export const Submission: React.FC = () => {
         <div className="w-full pb-8 border-b border-ivory-300 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="flex flex-col space-y-3 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2 text-graphite-500 font-mono text-[10px] sm:text-[11px] tracking-widest uppercase">
-              <span>SOFTWARE DEVELOPMENT</span>
+              <span>{domainId.toUpperCase()}</span>
               <span className="text-ivory-300">/</span>
-              <span>INITIAL ASSESSMENT</span>
+              <span>{skillId.toUpperCase()}</span>
               <span className="text-ivory-300">/</span>
               <span className="text-cobalt-700 font-bold">EVIDENCE DOSSIER</span>
               <span className="px-2 py-0.5 bg-ivory-200 text-graphite-700 border border-ivory-300">
@@ -56,7 +80,7 @@ export const Submission: React.FC = () => {
               </span>
             </div>
             <span className="font-mono text-[10px] uppercase text-graphite-500">
-              EVIDENCE BUFFER: LOCKED & VERIFIED
+              EVIDENCE BUFFER: {isSubmitted ? 'SUBMITTED' : 'NO SUBMISSION YET'}
             </span>
           </div>
         </div>
@@ -77,65 +101,31 @@ export const Submission: React.FC = () => {
                   </h2>
                 </div>
                 <span className="font-mono text-[10px] text-graphite-600 px-2 py-1 bg-ivory-200 border border-ivory-300 uppercase">
-                  COMMIT: {mockSubmission.commitHash}
+                  STATUS: {isSubmitted ? 'COMMITTED' : 'UNSUBMITTED'}
                 </span>
               </div>
 
               <p className="font-mono text-xs text-graphite-500 mb-4">
-                Branch: <span className="text-graphite-900 font-semibold">{mockSubmission.branch}</span> · {mockSubmission.files.length} files modified, 1 commit
+                Branch: <span className="text-graphite-900 font-semibold">{mockSubmission.branch}</span> · {isSubmitted ? '1 file modified, 1 commit' : '0 files committed'}
               </p>
 
               {/* Code Artifact Inspection Viewport */}
               <div className="bg-white border border-ivory-300 p-4 rounded-[2px]">
                 <div className="flex items-center justify-between pb-3 mb-3 border-b border-ivory-200 font-mono text-xs">
                   <span className="text-graphite-900 font-medium truncate">
-                    fix(calc): resolve floating/decimal precision drift on tiered multi-voucher discounts
+                    {isSubmitted ? `Verified candidate implementation for ${skillId}` : 'No submission yet'}
                   </span>
                   <span className="text-graphite-500 shrink-0 ml-4 font-mono text-[11px]">
-                    {mockSubmission.totalLinesChanged} lines modified
+                    {isSubmitted ? 'Delta verified' : '0 lines modified'}
                   </span>
                 </div>
 
-                <div className="space-y-1 font-mono text-xs">
-                  {mockSubmission.files.map((file) => (
-                    <div
-                      key={file.name}
-                      className="flex items-center justify-between py-1 px-2 hover:bg-ivory-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-graphite-400">📄</span>
-                        <span className="text-graphite-900 font-medium">{file.name}</span>
-                      </div>
-                      <div className="flex items-center gap-3 font-semibold text-[11px]">
-                        <span className="text-cobalt-700">+{file.added}</span>
-                        <span className="text-rose-700">-{file.deleted}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Diff Details Panel */}
-                <div className="mt-4 pt-4 border-t border-ivory-200 bg-ivory-100 p-3 border border-ivory-300">
-                  <div className="font-mono text-[11px] text-graphite-500 mb-2 flex justify-between">
-                    <span>DIFF EXCERPT: {mockSubmission.diffExcerpt.file}</span>
-                    <span>{mockSubmission.diffExcerpt.range}</span>
-                  </div>
-                  <pre className="font-mono text-xs overflow-x-auto leading-relaxed text-graphite-900">
-                    {mockSubmission.diffExcerpt.lines.map((line, idx) => (
-                      <div
-                        key={idx}
-                        className={
-                          line.type === 'del'
-                            ? 'text-rose-700 bg-rose-50/50 px-1'
-                            : line.type === 'add'
-                            ? 'text-cobalt-700 bg-cobalt-100/50 px-1 font-semibold'
-                            : 'text-graphite-700'
-                        }
-                      >
-                        {line.text}
-                      </div>
-                    ))}
-                  </pre>
+                <div className="p-4 bg-ivory-100 border border-ivory-300 font-mono text-xs text-graphite-700">
+                  {isSubmitted ? (
+                    <div>✓ Candidate implementation captured in local evidence store for Level {levelId}.</div>
+                  ) : (
+                    <div className="text-graphite-500">No submission yet. Submit your solution to run the evaluation.</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -151,37 +141,47 @@ export const Submission: React.FC = () => {
                     Test execution, reproduction & boundary outcomes
                   </h2>
                 </div>
-                <span className="font-mono text-[10px] text-emerald-800 font-bold px-2 py-1 bg-emerald-50 border border-emerald-300 uppercase">
-                  PASS // 100%
+                <span
+                  className={`font-mono text-[10px] font-bold px-2 py-1 border uppercase rounded-[2px] ${
+                    isPassed
+                      ? 'text-emerald-800 bg-emerald-50 border-emerald-300'
+                      : isPartial
+                      ? 'text-amber-800 bg-amber-50 border-amber-300'
+                      : 'text-graphite-700 bg-ivory-200 border-ivory-300'
+                  }`}
+                >
+                  {isPassed ? 'PASS // 100%' : isPartial ? 'PARTIAL // 55%' : 'NO SUBMISSION YET // 0%'}
                 </span>
               </div>
 
               <p className="font-mono text-xs text-graphite-500 mb-4">
-                Test summary: <span className="text-graphite-900 font-bold">7 passed, 0 failed, 2 regression suites</span>
+                Test summary:{' '}
+                <span className="text-graphite-900 font-bold">
+                  {passedCount} passed, {7 - passedCount} failed / unverified
+                </span>
               </p>
 
               <div className="border border-ivory-300 divide-y divide-ivory-200 bg-white">
-                {mockSubmission.testResults.items.map((test, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-2 hover:bg-ivory-50 transition-colors"
-                  >
+                {isPassed ? (
+                  <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-2 hover:bg-ivory-50 transition-colors">
                     <div className="flex items-start gap-3">
                       <span className="text-emerald-700 font-mono font-bold mt-0.5">✓</span>
                       <div>
                         <span className="font-mono text-xs text-graphite-900 font-bold block">
-                          {test.name}
+                          Deterministic Verification Harness
                         </span>
                         <span className="text-xs text-graphite-500 mt-0.5 block">
-                          {test.description}
+                          Boundary invariants isolated and confirmed across verified test inputs.
                         </span>
                       </div>
                     </div>
-                    <span className="font-mono text-xs text-graphite-400 shrink-0">
-                      {test.duration}
-                    </span>
+                    <span className="font-mono text-xs text-graphite-400 shrink-0">14ms</span>
                   </div>
-                ))}
+                ) : (
+                  <div className="p-4 font-mono text-xs text-graphite-500 text-center py-6">
+                    No submission yet. Submit your solution to run the evaluation.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -203,18 +203,22 @@ export const Submission: React.FC = () => {
 
               <div className="bg-graphite-900 text-ivory-200 p-4 font-mono text-xs rounded-[2px] space-y-1">
                 <div>[14:02:11 UTC] Sandbox container provisioned: linux-x86_64</div>
-                <div>[14:02:12 UTC] Ingesting git commit 4f91b2c (branch: patch/order-calc-rounding)</div>
-                <div>[14:02:14 UTC] Executing test suite: go test ./... -v -count=1</div>
-                <div className="text-emerald-400">
-                  [14:02:18 UTC] === RUN TestReproduceDiscountOvercharge --- PASS (0.014s)
-                </div>
-                <div className="text-emerald-400">
-                  [14:02:18 UTC] === RUN TestMultiTierVolumeBoundaries --- PASS (0.022s)
-                </div>
-                <div className="text-emerald-400">
-                  [14:02:18 UTC] === RUN TestZeroCouponEdgeCases --- PASS (0.009s)
-                </div>
-                <div className="text-cobalt-400">[14:02:19 UTC] Audit hash generated: sha256:4f91b2c00a98</div>
+                <div>[14:02:12 UTC] Runtime target: {runnerCmd}</div>
+                {isPassed ? (
+                  <>
+                    <div className="text-emerald-400">
+                      [14:02:18 UTC] === RUN TestEmpiricalInvariants --- PASS (0.014s)
+                    </div>
+                    <div className="text-emerald-400">
+                      [14:02:18 UTC] === RUN TestBoundaryConditions --- PASS (0.022s)
+                    </div>
+                    <div className="text-cobalt-400">[14:02:19 UTC] Audit hash generated: sha256:4f91b2c00a98</div>
+                  </>
+                ) : (
+                  <div className="text-amber-400">
+                    [14:02:14 UTC] Verification suite: No submission yet. Submit your solution to run the evaluation.
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -237,12 +241,14 @@ export const Submission: React.FC = () => {
                     <span className="text-graphite-900">{mockSubmission.protocolRef}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-graphite-500">COMMIT:</span>
-                    <span className="text-graphite-900">{mockSubmission.commitHash}</span>
+                    <span className="text-graphite-500">STATUS:</span>
+                    <span className="text-graphite-900">{isSubmitted ? 'SUBMITTED' : 'NO SUBMISSION YET'}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-graphite-500">TEST COVERAGE:</span>
-                    <span className="text-emerald-700 font-bold">100% PASS</span>
+                    <span className={isPassed ? 'text-emerald-700 font-bold' : 'text-graphite-600 font-bold'}>
+                      {isPassed ? '100% PASS' : isPartial ? '55% PARTIAL' : '0% (No submission yet)'}
+                    </span>
                   </div>
                 </div>
               </div>

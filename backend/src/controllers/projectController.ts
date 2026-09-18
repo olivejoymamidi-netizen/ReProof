@@ -174,7 +174,33 @@ export async function handleSubmitProject(req: Request, res: Response): Promise<
     if (!submission || typeof submission.sourceCode !== 'string') {
       res.status(400).json({
         success: false,
-        message: 'Project submission with sourceCode is required',
+        message: 'Please submit a solution before running the evaluation.',
+      });
+      return;
+    }
+
+    const rawCode = (submission.sourceCode || '').trim();
+    const hasNotes = (submission.architectureNotes || '').trim().length > 0;
+    const hasLogs = (submission.executionLogs || '').trim().length > 0;
+
+    // Check against current attempt specification
+    const currentAttempt = await getProjectAttempt(attemptId);
+    if (!currentAttempt) {
+      res.status(404).json({
+        success: false,
+        message: 'Project attempt not found',
+      });
+      return;
+    }
+
+    const starterCode = (currentAttempt.projectSpec?.starterCode || '').trim();
+    const isUnmodifiedStarter = rawCode === starterCode;
+
+    // Reject empty code or unmodified starter code when no additional evidence is provided
+    if (rawCode.length === 0 || (isUnmodifiedStarter && !hasNotes && !hasLogs)) {
+      res.status(400).json({
+        success: false,
+        message: 'Please submit a solution before running the evaluation.',
       });
       return;
     }

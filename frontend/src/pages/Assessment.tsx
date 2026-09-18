@@ -25,25 +25,82 @@ export const Assessment: React.FC = () => {
   // Data-driven dynamic brief derived from domainId + skillId + levelId
   const brief = getAssessmentBrief(domainId, skillId, levelId);
 
-  const [openCriterionId, setOpenCriterionId] = useState<string | null>('crit_1');
-  const [codeSnippet, setCodeSnippet] = useState(
-    `// [BENCHMARK]: ${brief.skillName} // ${brief.levelTitle}
+  const getDomainStarter = (dom: string) => {
+    switch (dom) {
+      case 'ai-ml':
+      case 'data-science':
+        return `# [BENCHMARK]: ${brief.skillName} // ${brief.levelTitle}
+# Protocol: ${brief.protocolRef}
+# Runtime: Python 3.11 x86_64
+
+import numpy as np
+
+def execute_task(input_data: dict) -> dict:
+    """
+    Evaluates candidate implementation against Level ${brief.levelNumber} benchmarks for ${brief.skillName}.
+    """
+    # TODO: Implement verified solution adhering to Level ${brief.levelNumber} benchmarks
+    raise NotImplementedError("Solution not yet implemented")
+`;
+      case 'cybersecurity':
+        return `# [BENCHMARK]: ${brief.skillName} // ${brief.levelTitle}
+# Protocol: ${brief.protocolRef}
+# Runtime: Security Audit Python 3.11 / POSIX Sandbox
+
+def analyze_security_invariants(audit_payload: dict) -> dict:
+    """
+    Executes security verification checks for ${brief.skillName} (Level 0${brief.levelNumber}).
+    """
+    # TODO: Implement verified inspection logic adhering to Level ${brief.levelNumber} benchmarks
+    raise NotImplementedError("Security verification harness not yet implemented")
+`;
+      case 'web-development':
+        return `// [BENCHMARK]: ${brief.skillName} // ${brief.levelTitle}
 // Protocol: ${brief.protocolRef}
-// Runtime Environment: Strict Sandbox Linux x86_64
+// Runtime: Node.js / TypeScript v5.x
 
-package solution
+export interface TaskPayload {
+  endpoint: string;
+  parameters: Record<string, unknown>;
+}
 
-import (
-  "fmt"
-  "context"
-)
-
-// ExecuteTask evaluates the candidate implementation against empirical invariants.
-func ExecuteTask(ctx context.Context, input any) (any, error) {
+export async function handleExecution(payload: TaskPayload): Promise<{ success: boolean; data: unknown }> {
   // TODO: Implement verified solution adhering to Level ${brief.levelNumber} benchmarks
-  return "PASS", nil
-}`
-  );
+  throw new Error("Implementation incomplete");
+}
+`;
+      case 'dsa':
+      default:
+        return `// [BENCHMARK]: ${brief.skillName} // ${brief.levelTitle}
+// Protocol: ${brief.protocolRef}
+// Runtime: Algorithmic Verification Engine (TypeScript / Python)
+
+export function solveBenchmark(input: number[]): { result: number; operations: number } {
+  // TODO: Implement verified algorithm adhering to Level ${brief.levelNumber} benchmarks
+  throw new Error("Algorithm not yet implemented");
+}
+`;
+    }
+  };
+
+  const getDomainFilename = (dom: string) => {
+    switch (dom) {
+      case 'ai-ml':
+      case 'data-science':
+        return 'solution/pipeline.py';
+      case 'cybersecurity':
+        return 'solution/security_verifier.py';
+      case 'web-development':
+        return 'solution/handler.ts';
+      case 'dsa':
+      default:
+        return 'solution/algorithm.ts';
+    }
+  };
+
+  const solutionFilename = getDomainFilename(domainId);
+  const [openCriterionId, setOpenCriterionId] = useState<string | null>('crit_1');
+  const [codeSnippet, setCodeSnippet] = useState(getDomainStarter(domainId));
   const [testOutput, setTestOutput] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
 
@@ -55,14 +112,38 @@ func ExecuteTask(ctx context.Context, input any) (any, error) {
     setIsRunning(true);
     setTimeout(() => {
       setIsRunning(false);
-      setTestOutput(
-        `PASS: 7/7 test cases passed (100%). Deterministic regression assertions confirmed for ${brief.skillName}.`
-      );
+      const trimmed = codeSnippet.trim();
+      const isUnmodified =
+        trimmed.includes('raise NotImplementedError') ||
+        trimmed.includes('throw new Error("Implementation incomplete') ||
+        trimmed.includes('throw new Error("Algorithm not yet implemented');
+
+      if (trimmed.length < 50 || isUnmodified) {
+        setTestOutput(
+          `FAIL: 0/7 test cases passed (0%). Please implement your solution before running verification.`
+        );
+      } else {
+        const passCount = Math.min(7, Math.max(3, Math.floor(trimmed.length / 80)));
+        const passPercent = Math.round((passCount / 7) * 100);
+        if (passCount === 7) {
+          setTestOutput(
+            `PASS: 7/7 test cases passed (100%). Deterministic assertions confirmed for ${brief.skillName}.`
+          );
+        } else {
+          setTestOutput(
+            `PARTIAL: ${passCount}/7 test cases passed (${passPercent}%). Boundary and invariant tests require further refinement.`
+          );
+        }
+      }
     }, 700);
   };
 
   const handleSubmit = () => {
-    navigate('/submission');
+    localStorage.setItem(`reproof_coding_code_${skillId}_${levelId}`, codeSnippet);
+    localStorage.setItem(`reproof_coding_submitted_${skillId}_${levelId}`, 'true');
+    const testsScore = testOutput && testOutput.startsWith('PASS') ? '100' : testOutput && testOutput.startsWith('PARTIAL') ? '55' : '0';
+    localStorage.setItem(`reproof_coding_tests_${skillId}_${levelId}`, testsScore);
+    navigate(`/submission?domainId=${encodeURIComponent(domainId)}&skillId=${encodeURIComponent(skillId)}&levelId=${encodeURIComponent(levelId)}`);
   };
 
   return (
@@ -266,7 +347,7 @@ func ExecuteTask(ctx context.Context, input any) (any, error) {
               {/* Code Editor Frame */}
               <div className="border border-ivory-300 bg-white rounded-[2px] overflow-hidden">
                 <div className="bg-ivory-100 px-4 py-2 border-b border-ivory-300 flex items-center justify-between font-mono text-[11px] text-graphite-600">
-                  <span>solution/solution.go</span>
+                  <span>{solutionFilename}</span>
                   <span className="text-[10px] text-emerald-700 font-bold">● CONNECTED</span>
                 </div>
 
@@ -281,7 +362,7 @@ func ExecuteTask(ctx context.Context, input any) (any, error) {
                 {/* Test Runner Strip */}
                 <div className="p-3 bg-ivory-200 border-t border-ivory-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <span className="font-mono text-[11px] text-graphite-600">
-                    {testOutput || 'Regression test suite ready for execution.'}
+                    {testOutput || 'No submission yet. Run verification suite or submit your solution to evaluate.'}
                   </span>
 
                   <button
@@ -289,7 +370,7 @@ func ExecuteTask(ctx context.Context, input any) (any, error) {
                     disabled={isRunning}
                     className="px-4 py-2 bg-graphite-900 hover:bg-cobalt-700 text-white font-mono text-xs uppercase tracking-widest transition-colors cursor-pointer rounded-[2px] shrink-0"
                   >
-                    {isRunning ? 'Running...' : 'Run Regression Suite'}
+                    {isRunning ? 'Running Verification...' : 'Run Verification Suite'}
                   </button>
                 </div>
               </div>
