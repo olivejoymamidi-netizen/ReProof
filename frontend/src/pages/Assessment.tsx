@@ -1,26 +1,49 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { mockAssessment } from '../data/mockData';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { getAssessmentBrief } from '../data/curriculumData';
 
 export const Assessment: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Dynamic parameters from query params or localStorage
+  const domainId =
+    searchParams.get('domainId') ||
+    localStorage.getItem('reproof_selected_domain') ||
+    'ai-ml';
+
+  const skillId =
+    searchParams.get('skillId') ||
+    localStorage.getItem('reproof_selected_skill') ||
+    'python-for-ml';
+
+  const levelId =
+    searchParams.get('levelId') ||
+    localStorage.getItem('reproof_selected_level') ||
+    '1';
+
+  // Data-driven dynamic brief derived from domainId + skillId + levelId
+  const brief = getAssessmentBrief(domainId, skillId, levelId);
+
   const [openCriterionId, setOpenCriterionId] = useState<string | null>('crit_1');
-  const [codeSnippet, setCodeSnippet] = useState(`// order-calc/service.go - Calculation Service
-package service
+  const [codeSnippet, setCodeSnippet] = useState(
+    `// [BENCHMARK]: ${brief.skillName} // ${brief.levelTitle}
+// Protocol: ${brief.protocolRef}
+// Runtime Environment: Strict Sandbox Linux x86_64
+
+package solution
 
 import (
-  "github.com/shopspring/decimal"
+  "fmt"
+  "context"
 )
 
-// CalculateFinalTotal resolves tiered discounts and itemized surcharges
-func CalculateFinalTotal(subtotalCents int64, tier DiscountTier) (int64, error) {
-  // [FIX IMPLEMENTED]: Replaced float64 with fixed-point decimal
-  subtotalDec := decimal.NewFromInt(subtotalCents)
-  discountApplied := subtotalDec.Mul(tier.FixedRate).RoundBank(2)
-  finalCents := subtotalDec.Sub(discountApplied).IntPart()
-
-  return finalCents, nil
-}`);
+// ExecuteTask evaluates the candidate implementation against empirical invariants.
+func ExecuteTask(ctx context.Context, input any) (any, error) {
+  // TODO: Implement verified solution adhering to Level ${brief.levelNumber} benchmarks
+  return "PASS", nil
+}`
+  );
   const [testOutput, setTestOutput] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
 
@@ -33,7 +56,7 @@ func CalculateFinalTotal(subtotalCents int64, tier DiscountTier) (int64, error) 
     setTimeout(() => {
       setIsRunning(false);
       setTestOutput(
-        'PASS: 7/7 test cases passed (100%). Deterministic regression test confirmed.'
+        `PASS: 7/7 test cases passed (100%). Deterministic regression assertions confirmed for ${brief.skillName}.`
       );
     }, 700);
   };
@@ -47,16 +70,29 @@ func CalculateFinalTotal(subtotalCents int64, tier DiscountTier) (int64, error) 
       {/* Top Context & Monumental Header */}
       <section className="w-full border-b border-ivory-300 bg-[#FAF9F6]">
         <div className="w-full max-w-[1600px] mx-auto px-6 sm:px-12 py-10 sm:py-12">
-          {/* Eyebrow */}
-          <div className="flex flex-wrap items-center gap-2 mb-4 font-mono text-[10px] sm:text-[11px] uppercase tracking-widest">
-            <span className="w-2 h-2 bg-cobalt-700"></span>
-            <span className="text-cobalt-700 font-bold">
-              {mockAssessment.domainName} // INITIAL ASSESSMENT
-            </span>
-            <span className="text-ivory-300">/</span>
-            <span className="text-graphite-500">
-              PROTOCOL REF: {mockAssessment.protocolRef}
-            </span>
+          {/* Eyebrow & Breadcrumb Context */}
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] sm:text-[11px] uppercase tracking-widest">
+              <span className="w-2 h-2 bg-cobalt-700"></span>
+              <span className="text-cobalt-700 font-bold">
+                {brief.domainName} // {brief.skillName}
+              </span>
+              <span className="text-ivory-300">/</span>
+              <span className="text-graphite-700 font-semibold">
+                LEVEL 0{brief.levelNumber} ({brief.difficulty})
+              </span>
+              <span className="text-ivory-300">/</span>
+              <span className="text-graphite-500">
+                PROTOCOL REF: {brief.protocolRef}
+              </span>
+            </div>
+
+            <Link
+              to={`/domains?domainId=${domainId}&skillId=${skillId}`}
+              className="font-mono text-xs text-cobalt-700 hover:text-cobalt-900 underline uppercase tracking-wider flex items-center gap-1"
+            >
+              <span>&larr; Switch Skill or Level</span>
+            </Link>
           </div>
 
           {/* Monumental Headline */}
@@ -70,7 +106,7 @@ func CalculateFinalTotal(subtotalCents int64, tier DiscountTier) (int64, error) 
             </div>
             <div className="lg:col-span-4 lg:pb-1">
               <p className="text-sm sm:text-base text-graphite-600 font-normal leading-relaxed">
-                Complete the practical task. Your work will be evaluated against observable, empirical competency criteria in an isolated runtime environment.
+                Complete the practical task for <strong className="text-graphite-900 font-semibold">{brief.skillName}</strong>. Your work is evaluated against observable, empirical competency criteria in an isolated runtime environment.
               </p>
             </div>
           </div>
@@ -80,30 +116,30 @@ func CalculateFinalTotal(subtotalCents int64, tier DiscountTier) (int64, error) 
       {/* Main Architectural Briefing Grid */}
       <section className="w-full max-w-[1600px] mx-auto px-6 sm:px-12 py-0">
         <div className="grid grid-cols-1 lg:grid-cols-12 border-b border-ivory-300">
-          {/* Left Column: Task Briefing & 5 Observable Criteria (Cols 1-7) */}
+          {/* Left Column: Task Briefing & Observable Criteria (Cols 1-7) */}
           <div className="lg:col-span-7 border-b lg:border-b-0 lg:border-r border-ivory-300 py-10 lg:pr-10 space-y-8">
             {/* Task Header Division */}
             <div className="pb-6 border-b border-ivory-300 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-widest text-cobalt-700 font-bold">
-                  ASSIGNMENT BRIEF // STAGE 01
+                  ASSIGNMENT BRIEF // LEVEL 0{brief.levelNumber}
                 </span>
                 <span className="font-mono text-[9px] uppercase text-graphite-700 bg-ivory-200 px-2 py-0.5 border border-ivory-300">
-                  {mockAssessment.severity}
+                  {brief.difficulty.toUpperCase()} BENCHMARK
                 </span>
               </div>
               <h2 className="text-2xl font-black text-graphite-900 uppercase tracking-tight">
-                {mockAssessment.title}
+                {brief.title}
               </h2>
             </div>
 
             {/* Incident Synopsis */}
             <div className="space-y-2">
               <h3 className="font-mono text-[10px] uppercase tracking-wider text-graphite-500 font-bold">
-                INCIDENT SYNOPSIS
+                BENCHMARK SPECIFICATION & SCENARIO
               </h3>
               <p className="text-sm sm:text-base text-graphite-800 leading-relaxed bg-white p-4 border border-ivory-300 rounded-[2px]">
-                {mockAssessment.synopsis}
+                {brief.synopsis}
               </p>
             </div>
 
@@ -117,19 +153,39 @@ func CalculateFinalTotal(subtotalCents int64, tier DiscountTier) (int64, error) 
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {mockAssessment.topology.map((t) => (
-                  <div key={t.code} className="bg-white p-3 border border-ivory-300">
-                    <span className="font-mono text-[10px] text-cobalt-700 font-bold block">
-                      {t.code}
-                    </span>
-                    <span className="font-bold text-xs text-graphite-900 block mt-0.5">
-                      {t.name}
-                    </span>
-                    <span className="text-[11px] text-graphite-500 mt-1 block leading-snug">
-                      {t.description}
-                    </span>
-                  </div>
-                ))}
+                <div className="bg-white p-3 border border-ivory-300">
+                  <span className="font-mono text-[10px] text-cobalt-700 font-bold block">
+                    01 // RUNTIME
+                  </span>
+                  <span className="font-bold text-xs text-graphite-900 block mt-0.5">
+                    {brief.skillName}
+                  </span>
+                  <span className="text-[11px] text-graphite-500 mt-1 block leading-snug">
+                    Dedicated execution harness calibrated for {brief.levelTitle}.
+                  </span>
+                </div>
+                <div className="bg-white p-3 border border-ivory-300">
+                  <span className="font-mono text-[10px] text-cobalt-700 font-bold block">
+                    02 // ASSERTION
+                  </span>
+                  <span className="font-bold text-xs text-graphite-900 block mt-0.5">
+                    Deterministic Checks
+                  </span>
+                  <span className="text-[11px] text-graphite-500 mt-1 block leading-snug">
+                    Stateful regression assertions testing edge conditions.
+                  </span>
+                </div>
+                <div className="bg-white p-3 border border-ivory-300">
+                  <span className="font-mono text-[10px] text-cobalt-700 font-bold block">
+                    03 // DOSSIER
+                  </span>
+                  <span className="font-bold text-xs text-graphite-900 block mt-0.5">
+                    Evidence Capture
+                  </span>
+                  <span className="text-[11px] text-graphite-500 mt-1 block leading-snug">
+                    Full git diff and execution log captured for audit ledger.
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -140,7 +196,7 @@ func CalculateFinalTotal(subtotalCents int64, tier DiscountTier) (int64, error) 
                   WHAT YOU MUST DEMONSTRATE
                 </h3>
                 <span className="font-mono text-[10px] text-graphite-500 uppercase">
-                  5 CRITERIA REQUIRED
+                  {brief.criteria.length} CRITERIA REQUIRED
                 </span>
               </div>
               <p className="text-xs text-graphite-500">
@@ -148,7 +204,7 @@ func CalculateFinalTotal(subtotalCents int64, tier DiscountTier) (int64, error) 
               </p>
 
               <div className="divide-y divide-ivory-300 border-t border-b border-ivory-300 bg-white">
-                {mockAssessment.criteria.map((crit) => {
+                {brief.criteria.map((crit) => {
                   const isOpen = openCriterionId === crit.id;
 
                   return (
@@ -210,7 +266,7 @@ func CalculateFinalTotal(subtotalCents int64, tier DiscountTier) (int64, error) 
               {/* Code Editor Frame */}
               <div className="border border-ivory-300 bg-white rounded-[2px] overflow-hidden">
                 <div className="bg-ivory-100 px-4 py-2 border-b border-ivory-300 flex items-center justify-between font-mono text-[11px] text-graphite-600">
-                  <span>order-calc/service.go</span>
+                  <span>solution/solution.go</span>
                   <span className="text-[10px] text-emerald-700 font-bold">● CONNECTED</span>
                 </div>
 
@@ -246,15 +302,15 @@ func CalculateFinalTotal(subtotalCents int64, tier DiscountTier) (int64, error) 
                 <div className="space-y-1 text-xs text-graphite-600">
                   <div className="flex items-center gap-2">
                     <span className="text-emerald-700 font-bold font-mono">✓</span>
-                    <span>Regression test written and isolating defect</span>
+                    <span>Level {brief.levelNumber} target criteria identified</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-emerald-700 font-bold font-mono">✓</span>
-                    <span>Fixed decimal precision arithmetic applied</span>
+                    <span>Deterministic assertions configured for {brief.skillName}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-emerald-700 font-bold font-mono">✓</span>
-                    <span>1,000 randomized combinatorial input fixtures green</span>
+                    <span>Automated test fixtures ready for execution</span>
                   </div>
                 </div>
               </div>

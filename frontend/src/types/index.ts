@@ -12,6 +12,23 @@ export interface UserProfile {
   activeDomain: string;
 }
 
+export interface CompetencyLevelItem {
+  id: string;
+  levelNumber: number; // 1, 2, 3
+  title: string;
+  description: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced' | string;
+}
+
+export interface SkillItem {
+  id: string;
+  domainId: string;
+  name: string;
+  slug: string;
+  description: string;
+  levels: CompetencyLevelItem[];
+}
+
 export interface DomainItem {
   id: string;
   code: string;
@@ -21,6 +38,7 @@ export interface DomainItem {
   subtopics: string;
   status: 'Ready' | 'In Progress' | 'Verified';
   selected?: boolean;
+  skills?: SkillItem[];
 }
 
 export interface AssessmentCriterion {

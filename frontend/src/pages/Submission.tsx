@@ -1,9 +1,25 @@
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { mockSubmission, mockUser } from '../data/mockData';
 
 export const Submission: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const domainId =
+    searchParams.get('domainId') ||
+    localStorage.getItem('reproof_selected_domain') ||
+    'ai-ml';
+
+  const skillId =
+    searchParams.get('skillId') ||
+    localStorage.getItem('reproof_selected_skill') ||
+    'python-for-ml';
+
+  const levelId =
+    searchParams.get('levelId') ||
+    localStorage.getItem('reproof_selected_level') ||
+    '1';
 
   return (
     <div className="w-full flex flex-col bg-[#FAF9F6] text-graphite-900 pb-16">
@@ -244,10 +260,14 @@ export const Submission: React.FC = () => {
             {/* Action Buttons */}
             <div className="space-y-3 pt-4 border-t border-ivory-300">
               <button
-                onClick={() => navigate('/skill-gap')}
+                onClick={() =>
+                  navigate(
+                    `/project?domainId=${encodeURIComponent(domainId)}&skillId=${encodeURIComponent(skillId)}&levelId=${encodeURIComponent(levelId)}`
+                  )
+                }
                 className="w-full py-4 bg-cobalt-700 hover:bg-cobalt-900 text-white font-mono text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-3 cursor-pointer rounded-[2px]"
               >
-                <span>Submit Evidence for Audit</span>
+                <span>Continue to Project Round</span>
                 <span>&rarr;</span>
               </button>
 

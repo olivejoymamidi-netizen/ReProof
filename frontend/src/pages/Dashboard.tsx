@@ -1,11 +1,18 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { mockAssessment } from '../data/mockData';
+import { getAssessmentBrief } from '../data/curriculumData';
 import { useCurrentUser } from '../context/useCurrentUser';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
+
+  // Active curriculum selection from localStorage or defaults
+  const domainId = localStorage.getItem('reproof_selected_domain') || 'ai-ml';
+  const skillId = localStorage.getItem('reproof_selected_skill') || 'python-for-ml';
+  const levelId = localStorage.getItem('reproof_selected_level') || '1';
+
+  const brief = getAssessmentBrief(domainId, skillId, levelId);
 
   return (
     <div className="w-full flex flex-col bg-[#FAF9F6] text-graphite-900 pb-16">
@@ -26,6 +33,16 @@ export const Dashboard: React.FC = () => {
           <p className="text-base sm:text-lg text-graphite-600 max-w-2xl mt-4 leading-relaxed font-normal">
             Your competency profile is built from demonstrated evidence, not certificates alone. Every benchmark evaluates real execution under unscripted failure states.
           </p>
+
+          <div className="mt-6 pt-4 flex flex-wrap items-center gap-4">
+            <Link
+              to="/domains"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-graphite-900 hover:bg-cobalt-700 text-white font-mono text-xs uppercase tracking-widest transition-colors rounded-[2px]"
+            >
+              <span>SELECT DOMAIN & SKILL</span>
+              <span>&rarr;</span>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -36,38 +53,52 @@ export const Dashboard: React.FC = () => {
           <div className="lg:col-span-8 flex flex-col justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2 text-graphite-500 font-mono text-[10px] sm:text-[11px] tracking-wider mb-2 uppercase">
-                <span>{mockAssessment.domainName}</span>
+                <span>{brief.domainName}</span>
                 <span>/</span>
-                <span className="text-graphite-900 font-bold">{mockAssessment.track}</span>
+                <span className="text-graphite-900 font-bold">{brief.skillName}</span>
+                <span>/</span>
+                <span className="text-cobalt-700 font-bold">LEVEL 0{brief.levelNumber}</span>
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-extrabold text-graphite-900 tracking-tight uppercase">
-                {mockAssessment.title}
+                {brief.title}
               </h2>
 
               <div className="inline-flex items-center gap-2 mt-2 font-mono text-[11px] text-cobalt-700">
                 <span className="w-1.5 h-1.5 bg-cobalt-700 inline-block"></span>
                 <span className="font-bold uppercase tracking-wider">
-                  STAGE 01: INITIAL ASSESSMENT READY
+                  BENCHMARK READY // {brief.difficulty.toUpperCase()}
                 </span>
               </div>
 
               <p className="text-sm text-graphite-600 mt-4 max-w-2xl leading-relaxed">
-                {mockAssessment.synopsis}
+                {brief.synopsis}
               </p>
             </div>
 
             <div className="mt-8 flex flex-wrap items-center gap-4 pt-6 border-t border-ivory-300">
               <button
-                onClick={() => navigate('/assessment')}
+                onClick={() =>
+                  navigate(
+                    `/assessment?domainId=${domainId}&skillId=${skillId}&levelId=${levelId}`
+                  )
+                }
                 className="inline-flex items-center justify-center gap-3 bg-cobalt-700 text-white hover:bg-cobalt-900 px-6 py-3 font-mono text-xs uppercase tracking-widest transition-colors cursor-pointer rounded-[2px]"
               >
                 <span>Start Assessment</span>
                 <span>&rarr;</span>
               </button>
 
+              <Link
+                to="/domains"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 border border-ivory-300 hover:border-graphite-700 bg-white font-mono text-xs uppercase tracking-widest text-graphite-700 transition-colors rounded-[2px]"
+              >
+                <span>Change Domain / Skill</span>
+                <span>&rarr;</span>
+              </Link>
+
               <span className="font-mono text-[11px] text-graphite-500">
-                Estimated Duration: {mockAssessment.estimatedDuration} · Isolation Mode: {mockAssessment.isolationMode}
+                Estimated Duration: {brief.estimatedDuration} · Isolation Mode: {brief.isolationMode}
               </span>
             </div>
           </div>

@@ -6,10 +6,11 @@ import { useCurrentUser } from '../../context/useCurrentUser';
 const primaryNavItems = [
   { path: '/dashboard', label: 'DASHBOARD' },
   { path: '/domains', label: 'DOMAINS' },
-  { path: '/assessment', label: 'ASSESSMENT' },
-  { path: '/submission', label: 'SUBMISSION' },
-  { path: '/skill-gap', label: 'SKILL GAP' },
-  { path: '/intro', label: 'SCROLL STORY' },
+  { path: '/knowledge-check', label: 'KNOWLEDGE CHECK' },
+  { path: '/project', label: 'PROJECT' },
+  { path: '/technical-interview', label: 'INTERVIEW' },
+  { path: '/evidence-analysis', label: 'EVIDENCE' },
+  { path: '/skill-proof', label: 'SKILL PROOF' },
 ];
 
 const allRoutes = [
@@ -17,13 +18,19 @@ const allRoutes = [
   { path: '/intro', label: '02. Editorial Scroll Story', code: 'STORY' },
   { path: '/dashboard', label: '03. Evidence Dashboard', code: 'LEDGER' },
   { path: '/domains', label: '04. Domain Selection (5 Domains)', code: 'DOMAINS' },
-  { path: '/assessment', label: '05. Initial Assessment (DEV-0884)', code: 'BENCHMARK' },
-  { path: '/submission', label: '06. Evidence Dossier Submission', code: 'DOSSIER' },
-  { path: '/skill-gap', label: '07. Competency Skill-Gap Report', code: 'RUBRIC' },
-  { path: '/practice', label: '08. Targeted Remediation Practice', code: 'DRILLS' },
-  { path: '/changed-condition', label: '09. The Changed Condition', code: 'MUTATION' },
-  { path: '/re-proof', label: '10. Adaptive Re-Proof Sandbox', code: 'VERIFY' },
-  { path: '/result', label: '11. Verified Proof Credential', code: 'CERT' },
+  { path: '/knowledge-check', label: '05. Knowledge Check (Round 2)', code: 'KNOWLEDGE' },
+  { path: '/approach', label: '06. Approach Formulation', code: 'APPROACH' },
+  { path: '/assessment', label: '07. Practical Assessment Sandbox', code: 'BENCHMARK' },
+  { path: '/submission', label: '08. Coding Evidence Dossier', code: 'DOSSIER' },
+  { path: '/project', label: '09. Benchmark Project Round', code: 'PROJECT' },
+  { path: '/technical-interview', label: '10. Final Technical Interview', code: 'INTERVIEW' },
+  { path: '/evidence-analysis', label: '11. Observable Evidence Analysis', code: 'EVIDENCE' },
+  { path: '/skill-proof', label: '12. Final Accredited Skill Proof', code: 'PROOF' },
+  { path: '/skill-gap', label: '13. Competency Skill-Gap Report', code: 'RUBRIC' },
+  { path: '/practice', label: '14. Targeted Remediation Practice', code: 'DRILLS' },
+  { path: '/changed-condition', label: '15. The Changed Condition', code: 'MUTATION' },
+  { path: '/re-proof', label: '16. Adaptive Re-Proof Sandbox', code: 'VERIFY' },
+  { path: '/result', label: '17. Verified Proof Credential', code: 'CERT' },
 ];
 
 export const AppLayout: React.FC = () => {
