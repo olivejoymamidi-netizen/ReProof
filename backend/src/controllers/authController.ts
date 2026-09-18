@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { findUserByClerkId } from '../services/userService';
+import { findOrCreateUserByClerkId } from '../services/userService';
 
 /**
  * Controller for GET /api/auth/me.
- * Returns authenticated Clerk identity and corresponding application user (if linked).
+ * Returns authenticated Clerk identity and corresponding application user.
+ * Provisions user in database if not yet existing.
  */
 export const getMe = async (
   req: Request,
@@ -21,7 +22,7 @@ export const getMe = async (
       return;
     }
 
-    const appUser = await findUserByClerkId(clerkUserId);
+    const appUser = await findOrCreateUserByClerkId(clerkUserId);
 
     res.status(200).json({
       success: true,
@@ -34,3 +35,4 @@ export const getMe = async (
     next(error);
   }
 };
+
