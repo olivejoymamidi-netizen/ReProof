@@ -72,7 +72,7 @@
     text-transform: uppercase;
   }
 
-  /* Micro fine grid from Stitch */
+  /* Micro fine archival grid */
   .bg-fine-grid {
     background-size: 40px 40px;
     background-image: 
@@ -80,3 +80,16 @@
       linear-gradient(to bottom, rgba(17, 18, 21, 0.03) 1px, transparent 1px);
   }
 }
+
+/* Accessibility: Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

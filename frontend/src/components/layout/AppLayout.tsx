@@ -73,7 +73,7 @@ export const AppLayout: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <span className="inline-block w-1.5 h-1.5 bg-cobalt-500" />
           <span className="font-semibold tracking-wider text-ivory-300 uppercase">
-            ReProof // Stitch Design Engine
+            ReProof // Verification Engine
           </span>
           <span className="text-graphite-500 hidden sm:inline">|</span>
           <span className="text-graphite-400 hidden sm:inline text-[10px]">
@@ -124,7 +124,7 @@ export const AppLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* Stitch Editorial Masthead / Header */}
+      {/* ReProof Editorial Masthead / Header */}
       <header className="w-full border-b border-ivory-300 bg-[#FAF9F6] sticky top-0 z-40">
         <div className="max-w-[1600px] mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
           {/* Brand & Platform Subtext */}
@@ -325,7 +325,7 @@ export const AppLayout: React.FC = () => {
         <Outlet />
       </main>
 
-      {/* Stitch Editorial Colophon / Footer */}
+      {/* ReProof Editorial Colophon / Footer */}
       <footer className="w-full border-t border-ivory-300 bg-[#FAF9F6] mt-auto">
         <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-graphite-500 uppercase tracking-wider">
           <div className="flex items-center gap-4">
