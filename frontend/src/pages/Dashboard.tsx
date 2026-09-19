@@ -5,7 +5,7 @@ import { useCurrentUser } from '../context/useCurrentUser';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser } = useCurrentUser();
+  const { currentUser, isSignedIn } = useCurrentUser();
 
   // Active curriculum selection from localStorage or defaults
   const domainId = localStorage.getItem('reproof_selected_domain') || 'ai-ml';
@@ -128,7 +128,7 @@ export const Dashboard: React.FC = () => {
                 Assigned Candidate Node
               </span>
               <p className="font-mono text-xs text-cobalt-700 font-medium">
-                US-EAST-SANDBOX-09 // {currentUser.handle}
+                US-EAST-SANDBOX-09 // {isSignedIn && currentUser.handle ? currentUser.handle : 'ACTIVE-SESSION'}
               </p>
             </div>
           </div>

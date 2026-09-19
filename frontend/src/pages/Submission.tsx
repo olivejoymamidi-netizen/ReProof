@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { mockSubmission, mockUser } from '../data/mockData';
+import { mockSubmission } from '../data/mockData';
+import { useCurrentUser } from '../context/useCurrentUser';
 
 export const Submission: React.FC = () => {
   const navigate = useNavigate();
+  const { currentUser } = useCurrentUser();
   const [searchParams] = useSearchParams();
 
   const domainId =
@@ -234,7 +236,7 @@ export const Submission: React.FC = () => {
                 <div className="space-y-3 font-mono text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-graphite-500">CANDIDATE:</span>
-                    <span className="text-graphite-900 font-bold">{mockUser.name}</span>
+                    <span className="text-graphite-900 font-bold">{currentUser.name || 'Candidate'}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-graphite-500">PROTOCOL:</span>

@@ -10,15 +10,15 @@ import type {
 } from '../types';
 
 export const mockUser: UserProfile = {
-  id: 'usr_88241',
-  name: 'H. Vance',
-  email: 'h.vance@accredited-candidate.org',
+  id: '',
+  name: '',
+  email: '',
   avatarUrl: '',
-  handle: 'ID-88241',
-  accreditationStatus: 'ACCREDITED // ID-88241',
-  reProofScore: 92,
-  completedProofs: 18,
-  activeDomain: 'Software Development',
+  handle: '',
+  accreditationStatus: '',
+  reProofScore: 0,
+  completedProofs: 0,
+  activeDomain: '',
 };
 
 export const mockDomains: DomainItem[] = [

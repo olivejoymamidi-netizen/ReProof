@@ -170,19 +170,21 @@ export const AppLayout: React.FC = () => {
                 <span className="text-graphite-800 font-semibold">GATEWAY</span>
                 <span className="text-graphite-400">/ 01 ENTRY</span>
               </div>
+            ) : !isSignedIn ? (
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 border border-graphite-900 bg-graphite-900 hover:bg-cobalt-700 text-white font-mono text-xs uppercase tracking-widest transition-colors rounded-[2px]"
+              >
+                <span>Sign In</span>
+                <span>&rarr;</span>
+              </Link>
             ) : (
               <div className="relative" ref={userMenuRef}>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (isSignedIn) {
-                      setUserMenuOpen(!userMenuOpen);
-                    } else {
-                      navigate('/login');
-                    }
-                  }}
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-3 cursor-pointer group text-left focus:outline-none"
-                  title={isSignedIn ? `Candidate Menu: ${currentUser.name}` : 'Click to Sign In'}
+                  title={`Candidate Menu: ${currentUser.name}`}
                 >
                   <div className="hidden sm:flex flex-col items-end leading-tight">
                     <span className="font-mono text-xs text-graphite-900 font-medium group-hover:text-cobalt-700 transition-colors">
@@ -193,10 +195,8 @@ export const AppLayout: React.FC = () => {
                     </span>
                   </div>
                   <div className="w-8 h-8 rounded-full bg-cobalt-700 text-[#FAF9F6] flex items-center justify-center font-mono text-xs font-semibold group-hover:bg-cobalt-900 transition-colors relative">
-                    {initials}
-                    {isSignedIn && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-[#FAF9F6] rounded-full" />
-                    )}
+                    {initials || 'CP'}
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-[#FAF9F6] rounded-full" />
                   </div>
                 </button>
 
@@ -296,7 +296,7 @@ export const AppLayout: React.FC = () => {
               </Link>
             ))}
 
-            {isSignedIn && (
+            {isSignedIn ? (
               <div className="pt-3 mt-3 border-t border-ivory-300 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="font-mono text-xs font-bold text-graphite-900 uppercase">
@@ -314,6 +314,16 @@ export const AppLayout: React.FC = () => {
                   <span>Sign Out</span>
                   <span>&rarr;</span>
                 </button>
+              </div>
+            ) : (
+              <div className="pt-3 mt-3 border-t border-ivory-300">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block w-full text-center py-2.5 bg-graphite-900 text-white hover:bg-cobalt-700 font-mono text-xs uppercase tracking-widest rounded-[2px]"
+                >
+                  Sign In &rarr;
+                </Link>
               </div>
             )}
           </div>

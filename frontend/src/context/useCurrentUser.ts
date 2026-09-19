@@ -1,14 +1,23 @@
 import { useContext } from 'react';
 import { AuthContext, type AuthContextType } from './authContextDef';
-import { mockUser } from '../data/mockData';
 
 export const useCurrentUser = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
     return {
       backendUser: null,
-      currentUser: mockUser,
-      initials: 'HV',
+      currentUser: {
+        id: '',
+        name: '',
+        email: '',
+        avatarUrl: '',
+        handle: '',
+        accreditationStatus: '',
+        reProofScore: 0,
+        completedProofs: 0,
+        activeDomain: '',
+      },
+      initials: '',
       isLoading: false,
       authError: null,
       refetchUser: async () => {},

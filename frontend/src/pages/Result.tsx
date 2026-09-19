@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { mockReProofResult, mockUser } from '../data/mockData';
+import { mockReProofResult } from '../data/mockData';
+import { useCurrentUser } from '../context/useCurrentUser';
 
 export const Result: React.FC = () => {
   const navigate = useNavigate();
+  const { currentUser } = useCurrentUser();
 
   const handleCopyHash = () => {
     navigator.clipboard?.writeText(mockReProofResult.proofHash);
@@ -66,8 +68,10 @@ export const Result: React.FC = () => {
 
               <div className="text-left sm:text-right font-mono">
                 <span className="text-[10px] text-graphite-400 uppercase">ACCREDITED CANDIDATE</span>
-                <div className="text-base font-bold text-graphite-900">{mockUser.name}</div>
-                <div className="text-xs text-cobalt-700 font-semibold">{mockUser.accreditationStatus}</div>
+                <div className="text-base font-bold text-graphite-900">{currentUser.name || 'Candidate'}</div>
+                {currentUser.accreditationStatus && (
+                  <div className="text-xs text-cobalt-700 font-semibold">{currentUser.accreditationStatus}</div>
+                )}
               </div>
             </div>
 

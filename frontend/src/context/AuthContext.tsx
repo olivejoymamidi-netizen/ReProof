@@ -7,7 +7,6 @@ import React, {
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { setApiTokenGetter, setOnUnauthorized } from '../api/client';
 import { fetchCurrentBackendUser, type BackendUser } from '../api/auth';
-import { mockUser } from '../data/mockData';
 import type { UserProfile } from '../types';
 import { AuthContext } from './authContextDef';
 
@@ -106,8 +105,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, [isLoaded, isSignedIn]);
 
-  // Unified candidate profile (seamless fallback hierarchy: backend -> Clerk -> mock defaults)
+  // Unified candidate profile: strictly reflects authentication state
   const { currentUser, initials } = useMemo(() => {
+    if (!isSignedIn) {
+      const emptyProfile: UserProfile = {
+        id: '',
+        name: '',
+        email: '',
+        avatarUrl: '',
+        handle: '',
+        accreditationStatus: '',
+        reProofScore: 0,
+        completedProofs: 0,
+        activeDomain: '',
+      };
+      return { currentUser: emptyProfile, initials: '' };
+    }
+
     const clerkFullName = clerkUser
       ? `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
         clerkUser.fullName
@@ -117,39 +131,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       backendUser?.name ||
       backendUser?.fullName ||
       clerkFullName ||
-      mockUser.name;
+      clerkUser?.username ||
+      clerkUser?.primaryEmailAddress?.emailAddress?.split('@')[0] ||
+      'Candidate';
 
     const displayEmail =
       backendUser?.email ||
       clerkUser?.primaryEmailAddress?.emailAddress ||
-      mockUser.email;
+      '';
 
     const displayId =
       backendUser?.id ||
       backendUser?.userId ||
       backendUser?.clerkId ||
       clerkUser?.id ||
-      mockUser.id;
+      '';
 
-    const idSuffix = displayId ? displayId.slice(-5).toUpperCase() : '88241';
+    const idSuffix = displayId ? displayId.slice(-5).toUpperCase() : '';
     const displayHandle =
       backendUser?.handle ||
-      (clerkUser?.username ? `@${clerkUser.username}` : `ID-${idSuffix}`);
+      (clerkUser?.username ? `@${clerkUser.username}` : (idSuffix ? `ID-${idSuffix}` : '@candidate'));
 
     const accreditationStatus =
       backendUser?.accreditationStatus ||
-      `ACCREDITED // ${displayHandle}`;
+      (displayHandle ? `ACCREDITED // ${displayHandle}` : 'ACCREDITED CANDIDATE');
 
     const profile: UserProfile = {
       id: displayId,
       name: displayName,
       email: displayEmail,
-      avatarUrl: backendUser?.avatarUrl || clerkUser?.imageUrl || mockUser.avatarUrl,
+      avatarUrl: backendUser?.avatarUrl || clerkUser?.imageUrl || '',
       handle: displayHandle,
       accreditationStatus,
-      reProofScore: backendUser?.reProofScore ?? mockUser.reProofScore,
-      completedProofs: backendUser?.completedProofs ?? mockUser.completedProofs,
-      activeDomain: backendUser?.activeDomain || mockUser.activeDomain,
+      reProofScore: backendUser?.reProofScore ?? 92,
+      completedProofs: backendUser?.completedProofs ?? 1,
+      activeDomain: backendUser?.activeDomain || 'AI & Machine Learning',
     };
 
     const calculatedInitials = displayName
@@ -158,10 +174,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       .map((p) => p[0])
       .join('')
       .toUpperCase()
-      .slice(0, 2) || 'CP';
+      .slice(0, 2) || (clerkUser?.firstName ? clerkUser.firstName[0].toUpperCase() : 'CP');
 
     return { currentUser: profile, initials: calculatedInitials };
-  }, [backendUser, clerkUser]);
+  }, [backendUser, clerkUser, isSignedIn]);
 
   return (
     <AuthContext.Provider
