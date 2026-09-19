@@ -74,11 +74,24 @@ export async function getSessionToken(): Promise<string | null> {
 }
 
 export const getBaseUrl = (): string => {
-  return (
-    import.meta.env.VITE_API_URL ||
-    import.meta.env.VITE_API_BASE_URL ||
-    'http://localhost:5000'
-  );
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+
+  if (typeof window !== 'undefined') {
+    const isLocalhost =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname === '0.0.0.0';
+
+    // In production web client (e.g. https://re-proof.vercel.app), prioritize production Render backend
+    if (!isLocalhost) {
+      if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+        return envUrl;
+      }
+      return 'https://reproof.onrender.com';
+    }
+  }
+
+  return envUrl || 'http://localhost:5000';
 };
 
 /**

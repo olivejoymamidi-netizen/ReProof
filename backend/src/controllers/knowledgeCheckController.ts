@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { getAuth } from '@clerk/express';
 import {
   startAssessment,
   getAttempt,
@@ -12,9 +13,21 @@ import { findOrCreateUserByClerkId } from '../services/userService';
  * Helper to resolve a valid user ID from Clerk session or demo fallback
  */
 async function resolveUserId(req: Request): Promise<string> {
-  if (req.clerkUserId) {
+  let clerkId = req.clerkUserId;
+  if (!clerkId) {
     try {
-      const user = await findOrCreateUserByClerkId(req.clerkUserId);
+      const auth = getAuth(req);
+      if (auth && auth.userId) {
+        clerkId = auth.userId;
+      }
+    } catch (_err) {
+      // ignore
+    }
+  }
+
+  if (clerkId) {
+    try {
+      const user = await findOrCreateUserByClerkId(clerkId);
       if (user?.id) {
         return user.id;
       }
