@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { SignIn, useAuth } from '@clerk/clerk-react';
-
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+import { CLERK_PUBLISHABLE_KEY } from '../config/clerk';
 
 export const Login: React.FC = () => {
   const { isSignedIn, isLoaded } = useAuth();
@@ -125,7 +124,7 @@ export const Login: React.FC = () => {
                 AUTH // LIVE
               </div>
 
-              {PUBLISHABLE_KEY ? (
+              {CLERK_PUBLISHABLE_KEY ? (
                 <SignIn
                   routing="hash"
                   fallbackRedirectUrl="/dashboard"
